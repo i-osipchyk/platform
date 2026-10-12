@@ -49,11 +49,6 @@ envs:
   default: demo,live
   when: "{{ deploy_lambda }}"
 
-aws_region:
-  type: str
-  default: eu-west-1
-  when: "{{ deploy_lambda }}"
-
 github_owner:
   type: str
   default: i-osipchyk

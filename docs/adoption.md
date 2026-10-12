@@ -44,6 +44,10 @@ What the scan found:
 - **Terraform state exists only on the laptop** (`infra/terraform.tfstate`).
 - `deepseek.py` returns only the text, so **token usage is discarded** and live spend is unknown.
 - The image uses a mutable `:latest` tag, `pip install` without the lockfile, and the default x86 architecture.
+- Region: `variable "region"` already defaults to eu-west-1. `runtime.py` and `storage.py` create
+  boto3 clients with no region, which works on Lambda but fails locally unless the profile sets
+  one. Call `os.environ.setdefault("AWS_REGION", "eu-west-1")` (mirrored to `AWS_DEFAULT_REGION`)
+  at start-up, as the template's `load_env()` does. `.env` has no `AWS_REGION` yet, so add it.
 - EventBridge rules (not Scheduler), one role per function, a project-specific alarm → Telegram
   Lambda, no default tags, AWS provider `~> 5.0`.
 
@@ -58,9 +62,10 @@ terraform {
 }
 ```
 ```bash
+export AWS_REGION="${AWS_REGION:-eu-west-1}" TF_VAR_region="${AWS_REGION:-eu-west-1}"
 terraform -chdir=infra init -migrate-state \
-  -backend-config="bucket=tfstate-<account>-eu-west-1" \
-  -backend-config="key=bondhype/live.tfstate" -backend-config="region=eu-west-1"
+  -backend-config="bucket=tfstate-<account>-$AWS_REGION" \
+  -backend-config="key=bondhype/live.tfstate" -backend-config="region=$AWS_REGION"
 # Answer yes, check `terraform plan` shows no changes, then delete the local tfstate files.
 ```
 
@@ -106,9 +111,10 @@ The most mature stack. The platform module was extracted from it, and names alre
 
 ### 1. State → the shared bucket
 ```bash
+export AWS_REGION="${AWS_REGION:-eu-west-1}" TF_VAR_region="${AWS_REGION:-eu-west-1}"
 terraform -chdir=infra init -migrate-state \
-  -backend-config="bucket=tfstate-<account>-eu-west-1" \
-  -backend-config="key=gtb/demo.tfstate" -backend-config="region=eu-west-1"
+  -backend-config="bucket=tfstate-<account>-$AWS_REGION" \
+  -backend-config="key=gtb/demo.tfstate" -backend-config="region=$AWS_REGION"
 ```
 After both envs are moved, delete the old `gtb-terraform-state-*` bucket.
 
@@ -145,6 +151,9 @@ moved { from = aws_s3_bucket.records               to = module.records.aws_s3_bu
 ### 3. Actions instead of `scripts/deploy.sh`
 - `deploy.sh` generates `early_close.auto.tfvars.json` before planning. Commit that file instead,
   plus a test asserting it matches `python -m gtb.schedules`, so CI needs no generation step.
+- Region: `deploy.sh` and `put_secrets.py` currently *require* `AWS_REGION` and fail without it,
+  and `variable "region"` has no default. Make all three fall back to eu-west-1
+  (`${AWS_REGION:-eu-west-1}`, `os.getenv("AWS_REGION", "eu-west-1")`, `default = "eu-west-1"`).
 - The "type 'live'" prompt becomes the required reviewer on the `live` GitHub Environment.
 - Keep `deploy.sh --plan` for local plans if useful, but delete its apply path.
 
@@ -154,6 +163,8 @@ Not deployed yet. Build Stages 27–30 of `docs/IMPLEMENTATION_PLAN.md` on the p
 from scratch:
 - **Stage 30 bootstrap** (state bucket, OIDC, deploy role) is done by platform `bootstrap/`.
   Remove it from the plan.
+- **Region:** the plan says "Region from `AWS_REGION`". Keep that, with the eu-west-1 fallback
+  (conventions.md § Region).
 - **Secrets Manager → SSM** at `/ags/<env>/*`. For cTrader token refresh, set `ssm_write = true`.
 - **Step Functions** go in `infra/` next to the module, named `ags-<env>-cycle`, with log group
   `/aws/vendedlogs/states/ags-<env>-*`. Grant the functions what they need with `extra_policy_json`.

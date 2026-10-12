@@ -11,4 +11,5 @@ First version.
   Anthropic usage normalisation, price table with DeepSeek peak/off-peak, JSONL / stdout /
   Langfuse (OTLP) sinks, `llmkit report`.
 - copier template (`uses_llm`, `deploy_lambda`, `envs`).
+- Region: `AWS_REGION` everywhere, defaulting to `eu-west-1` (no region baked into generated files).
 - Docs: conventions, deployment, LLM observability, new project, adoption plan.

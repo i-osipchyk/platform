@@ -1,5 +1,5 @@
 variable "region" {
-  description = "Home region for state, ECR and the shared alarm topic."
+  description = "Home region for state, ECR and the alarm topic. Fed from AWS_REGION via TF_VAR_region (see docs/deployment.md)."
   type        = string
   default     = "eu-west-1"
 }

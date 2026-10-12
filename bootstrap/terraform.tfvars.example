@@ -1,5 +1,6 @@
 # Copy to terraform.tfvars (gitignored). Add a project here before its first CI deploy.
-region       = "eu-west-1"
+# Region: not set here. It comes from AWS_REGION (export TF_VAR_region="$AWS_REGION"),
+# defaulting to eu-west-1.
 github_owner = "i-osipchyk"
 alert_email  = "" # budget alerts
 

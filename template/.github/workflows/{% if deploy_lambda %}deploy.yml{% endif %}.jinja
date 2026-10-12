@@ -1,6 +1,7 @@
 # Deploys after CI passes on main{% if 'demo' in envs %}: demo first, then live{% endif %}.
 # Put a required reviewer on the `live` GitHub Environment so live waits for your click.
-# Repo variable needed: AWS_ACCOUNT_ID. See platform docs/deployment.md.
+# Repo variables: AWS_ACCOUNT_ID (required), AWS_REGION (optional, default eu-west-1).
+# See platform docs/deployment.md.
 name: Deploy
 
 on:
@@ -32,7 +33,7 @@ jobs:
       project: {{ slug }}
       environment: {{ env }}
       aws-account-id: {% raw %}${{ vars.AWS_ACCOUNT_ID }}{% endraw %}
-      aws-region: {{ aws_region }}
+      aws-region: {% raw %}${{ vars.AWS_REGION || 'eu-west-1' }}{% endraw %}
 {%- endfor %}
 {%- if 'demo' in envs %}
 
@@ -44,5 +45,5 @@ jobs:
       project: {{ slug }}
       environment: live
       aws-account-id: {% raw %}${{ vars.AWS_ACCOUNT_ID }}{% endraw %}
-      aws-region: {{ aws_region }}
+      aws-region: {% raw %}${{ vars.AWS_REGION || 'eu-west-1' }}{% endraw %}
 {%- endif %}

@@ -23,7 +23,7 @@ You can also deploy one environment by hand: Actions → Deploy → Run workflow
 One-time setup (platform `docs/deployment.md` has the details):
 1. Add `{{ slug }} = { repo = "{{ project_name }}"{% if envs == 'live' %}, envs = ["live"]{% endif %} }` to platform `bootstrap/terraform.tfvars`, then apply it.
 2. GitHub repo → Settings → Environments: create {% for e in envs.split(',') %}`{{ e }}`{% if not loop.last %} and {% endif %}{% endfor %}. Give `live` a required reviewer.
-3. GitHub repo → Settings → Variables: set `AWS_ACCOUNT_ID`.
+3. GitHub repo → Settings → Variables: set `AWS_ACCOUNT_ID`. Set `AWS_REGION` too if it isn't eu-west-1.
 4. Secrets: `uv run python scripts/put_secrets.py --env <env>`.
 
 Functions start with their schedules disabled (`schedules_enabled = false` in
@@ -32,9 +32,10 @@ Functions start with their schedules disabled (`schedules_enabled = false` in
 ### Terraform by hand (plan only; applies go through CI)
 
 ```bash
+export AWS_REGION="${AWS_REGION:-eu-west-1}" TF_VAR_region="${AWS_REGION:-eu-west-1}"
 ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
-terraform -chdir=infra init -backend-config="bucket=tfstate-$ACCOUNT-{{ aws_region }}" \
-  -backend-config="key={{ slug }}/<env>.tfstate" -backend-config="region={{ aws_region }}"
+terraform -chdir=infra init -backend-config="bucket=tfstate-$ACCOUNT-$AWS_REGION" \
+  -backend-config="key={{ slug }}/<env>.tfstate" -backend-config="region=$AWS_REGION"
 terraform -chdir=infra plan -var-file=env/<env>.tfvars -var="image_uri=<repo@sha256:...>"
 ```
 {%- endif %}

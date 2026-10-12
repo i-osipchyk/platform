@@ -34,5 +34,9 @@ bumps its pin.
   `docs/adoption.md` tracks the migration status of existing projects.
 - Prices in `llmkit/src/llmkit/pricing.py` must come from the provider's pricing page, fetched at
   the time. Bump `PRICING_VERIFIED_ON`. Never guess a price; an unknown model stays unpriced.
+- Region: never hard-code one. Everything reads `AWS_REGION`, falling back to `eu-west-1`
+  (`docs/conventions.md` § Region): Python via `setdefault`, shell via `${AWS_REGION:-eu-west-1}`,
+  Terraform roots via `var.region` (default eu-west-1, fed by `-var` / `TF_VAR_region`), and
+  workflows via `vars.AWS_REGION || 'eu-west-1'`.
 - In template files, GitHub Actions expressions must be wrapped in `{% raw %}…{% endraw %}`.
 - Run `scripts/check.sh` before committing.

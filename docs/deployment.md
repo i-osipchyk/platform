@@ -18,9 +18,11 @@ Three layers:
 
 ## 1. Bootstrap the account (once)
 
-Needs admin credentials locally (`aws sts get-caller-identity` works).
+Needs admin credentials locally (`aws sts get-caller-identity` works) and the region exported
+(conventions.md § Region):
 
 ```bash
+export AWS_REGION="${AWS_REGION:-eu-west-1}" TF_VAR_region="${AWS_REGION:-eu-west-1}"
 cd ~/dev/platform/bootstrap
 cp terraform.tfvars.example terraform.tfvars      # list projects, set alert_email
 
@@ -36,8 +38,10 @@ terraform init
 terraform apply                                   # local state, this once
 
 # Move bootstrap's own state into the bucket it just created
-cp backend.tf.example backend.tf                  # fill in the account id
-terraform init -migrate-state
+cp backend.tf.example backend.tf
+terraform init -migrate-state \
+  -backend-config="bucket=tfstate-$(aws sts get-caller-identity --query Account --output text)-$AWS_REGION" \
+  -backend-config="region=$AWS_REGION"
 ```
 
 If the apply fails on `aws_ce_cost_allocation_tag`, AWS hasn't seen the tag yet. Set
@@ -53,6 +57,7 @@ deploy role and budget.
 1. **GitHub → Settings → Environments.** Create `demo` and `live` (or just `live`). On `live`,
    tick *Required reviewers* and add yourself. Optionally restrict deployment branches to `main`.
 2. **GitHub → Settings → Secrets and variables → Actions → Variables.** Set `AWS_ACCOUNT_ID`.
+   Set `AWS_REGION` only if the project isn't in eu-west-1.
 3. **Secrets:** `uv run python scripts/put_secrets.py --env demo`, and again for live.
 4. Projects from the template already have `.github/workflows/{ci,deploy}.yml` and `infra/`.
    For existing projects, see `adoption.md`.
@@ -79,7 +84,7 @@ logs, then flip the flag in a PR.
 | Input | Default | |
 |---|---|---|
 | `project`, `environment`, `aws-account-id` | required | |
-| `aws-region` | `eu-west-1` | |
+| `aws-region` | empty → `eu-west-1` | callers pass `${{ vars.AWS_REGION \|\| 'eu-west-1' }}` |
 | `tf-dir` | `infra` | |
 | `tf-vars` | | extra `-var` / `-var-file` flags |
 | `runner` | `ubuntu-24.04-arm` | native arm64 build. Any other runner builds under QEMU, which is slower |

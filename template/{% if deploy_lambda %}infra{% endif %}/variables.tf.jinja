@@ -8,8 +8,9 @@ variable "env" {
 }
 
 variable "region" {
-  type    = string
-  default = "{{ aws_region }}"
+  description = "Fed from AWS_REGION: CI passes -var region=..., local shells export TF_VAR_region=$AWS_REGION."
+  type        = string
+  default     = "eu-west-1"
 }
 
 variable "image_uri" {

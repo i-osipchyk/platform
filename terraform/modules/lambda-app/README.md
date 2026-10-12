@@ -10,6 +10,9 @@ EventBridge Scheduler entries, and an Errors alarm per function that publishes t
 It does **not** create the ECR repository (bootstrap does: one per project, shared by envs) or
 buckets (use `data-bucket`).
 
+No region variable: the module uses the provider's region (the root sets it from `AWS_REGION`,
+default eu-west-1). Lambda sets `AWS_REGION` inside the functions itself.
+
 Every function gets these env vars: `PROJECT`, `ENV`, `FUNCTION`, `LLMKIT_PROJECT`, `LLMKIT_ENV`,
 `SECRETS_PATH=/<project>/<env>`, `SHARED_SECRETS_PATH=/platform/shared`.
 

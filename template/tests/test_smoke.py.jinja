@@ -1,9 +1,26 @@
+import os
+
 import {{ package }}
-from {{ package }}.config import require
+from {{ package }}.config import DEFAULT_AWS_REGION, load_env, require
 
 
 def test_imports():
     assert {{ package }}.__doc__
+
+
+def test_aws_region_defaults_to_eu_west_1(monkeypatch, tmp_path):
+    for key in ("AWS_REGION", "AWS_DEFAULT_REGION", "AWS_LAMBDA_FUNCTION_NAME"):
+        monkeypatch.delenv(key, raising=False)
+    load_env(tmp_path / "missing.env")
+    assert os.environ["AWS_REGION"] == DEFAULT_AWS_REGION == "eu-west-1"
+    assert os.environ["AWS_DEFAULT_REGION"] == "eu-west-1"
+
+
+def test_aws_region_env_wins(monkeypatch, tmp_path):
+    monkeypatch.delenv("AWS_DEFAULT_REGION", raising=False)
+    monkeypatch.setenv("AWS_REGION", "eu-central-1")
+    load_env(tmp_path / "missing.env")
+    assert os.environ["AWS_DEFAULT_REGION"] == "eu-central-1"
 
 
 def test_require_reports_missing(monkeypatch):

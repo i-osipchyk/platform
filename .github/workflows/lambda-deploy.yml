@@ -12,6 +12,7 @@
 #         project: gtb
 #         environment: demo
 #         aws-account-id: ${{ vars.AWS_ACCOUNT_ID }}
+#         aws-region: ${{ vars.AWS_REGION || 'eu-west-1' }}
 #
 # The image is tagged with the first 12 chars of the commit SHA. If that tag already exists
 # (demo built it, live reuses it) the build is skipped, so live runs exactly what demo ran.
@@ -31,8 +32,9 @@ on:
         type: string
         required: true
       aws-region:
+        description: Empty = eu-west-1. Callers pass ${{ vars.AWS_REGION || 'eu-west-1' }}
         type: string
-        default: eu-west-1
+        default: ""
       ref:
         description: Commit to deploy (default: the triggering commit / workflow_run head)
         type: string
@@ -78,11 +80,11 @@ jobs:
     outputs:
       image-uri: ${{ steps.image.outputs.uri }}
     env:
-      AWS_REGION: ${{ inputs.aws-region }}
+      AWS_REGION: ${{ inputs.aws-region || 'eu-west-1' }}
       PROJECT: ${{ inputs.project }}
       ENVIRONMENT: ${{ inputs.environment }}
-      REPO: ${{ inputs.aws-account-id }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com/${{ inputs.project }}
-      STATE_BUCKET: tfstate-${{ inputs.aws-account-id }}-${{ inputs.aws-region }}
+      REPO: ${{ inputs.aws-account-id }}.dkr.ecr.${{ inputs.aws-region || 'eu-west-1' }}.amazonaws.com/${{ inputs.project }}
+      STATE_BUCKET: tfstate-${{ inputs.aws-account-id }}-${{ inputs.aws-region || 'eu-west-1' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -91,7 +93,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/gh-deploy-${{ inputs.project }}
-          aws-region: ${{ inputs.aws-region }}
+          aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
 
       - uses: aws-actions/amazon-ecr-login@v2
 

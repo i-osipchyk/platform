@@ -30,9 +30,33 @@ separates the slug from the env and the name.
   same image digest**.
 - `live` is a GitHub Environment with a required reviewer. Nothing reaches live without your click.
 
+## Region: `AWS_REGION`, default `eu-west-1`
+
+The region is set in exactly one place, the **`AWS_REGION` env var**. When it isn't set, every
+consumer falls back to **`eu-west-1`**. Never hard-code a region anywhere else.
+
+| Consumer | How it gets the region |
+|---|---|
+| Python (boto3, scripts) | `config.load_env()` does `os.environ.setdefault("AWS_REGION", "eu-west-1")` and mirrors it to `AWS_DEFAULT_REGION`. Clients are created after that, so they need no `region_name` |
+| Lambda | the runtime sets `AWS_REGION` itself (it's reserved; never set it in Terraform) |
+| Shell scripts | `AWS_REGION="${AWS_REGION:-eu-west-1}"` at the top |
+| Terraform roots | `variable "region" { default = "eu-west-1" }` → `provider "aws" { region = var.region }`. Terraform can't read arbitrary env vars, so CI passes `-var region=$AWS_REGION`, and locally `TF_VAR_region` mirrors it (shell profile below) |
+| Terraform modules | inherit the provider's region (`data "aws_region"`), so they have no region variable |
+| GitHub Actions | repo variable `AWS_REGION` (optional), passed as `aws-region: ${{ vars.AWS_REGION \|\| 'eu-west-1' }}`. The reusable workflow falls back to eu-west-1 too |
+| `.env` / `.env.example` | always contains `AWS_REGION=eu-west-1` |
+
+Shell profile (`~/.zshrc`), so local tools and Terraform agree:
+```bash
+export AWS_REGION="${AWS_REGION:-eu-west-1}"
+export TF_VAR_region="$AWS_REGION"
+```
+
+The region is also part of the state bucket name (`tfstate-<account>-<region>`). A project in
+another region therefore needs bootstrap applied in that region too.
+
 ## AWS / Terraform
 
-- Region **eu-west-1**. Terraform `>= 1.10`, AWS provider `~> 6.0`.
+- Terraform `>= 1.10`, AWS provider `~> 6.0`.
 - State lives in S3 in the account's bucket `tfstate-<account>-<region>`, using native S3 locking
   (`use_lockfile = true`). Backend config is partial and passed at `init`. **Never use local state.**
 - Default tags on every provider: `project`, `env`, `managed_by = "terraform"`, `repo`.
