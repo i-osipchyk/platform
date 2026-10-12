@@ -4,9 +4,9 @@ Projects consume the platform **from GitHub, by tag**:
 
 | What | Reference in a project |
 |---|---|
-| Terraform modules | `source = "git::https://github.com/i-osipchyk/platform.git//terraform/modules/lambda-app?ref=v0.1.0"` |
-| Reusable workflows | `uses: i-osipchyk/platform/.github/workflows/python-ci.yml@v0.1.0` |
-| llmkit | `llmkit = { git = "https://github.com/i-osipchyk/platform", subdirectory = "llmkit", tag = "v0.1.0" }` |
+| Terraform modules | `source = "git::https://github.com/i-osipchyk/platform.git//terraform/modules/lambda-app?ref=v0.1.1"` |
+| Reusable workflows | `uses: i-osipchyk/platform/.github/workflows/python-ci.yml@v0.1.1` |
+| llmkit | `llmkit = { git = "https://github.com/i-osipchyk/platform", subdirectory = "llmkit", tag = "v0.1.1" }` |
 | Template | `uvx copier copy --trust gh:i-osipchyk/platform <dir>` (newest tag) |
 
 So nothing works for other projects until the repo is on GitHub **and tagged**. Do this once.
@@ -52,14 +52,14 @@ Terraform validate, template render). Wait for it to go green before tagging.
 
 ## 3. Tag the first release
 
-1. In `CHANGELOG.md`, change `## v0.1.0 (unreleased)` to `## v0.1.0 (YYYY-MM-DD)`, then:
+1. In `CHANGELOG.md`, change `## v0.1.1 (unreleased)` to `## v0.1.1 (YYYY-MM-DD)`, then:
 ```bash
-git commit -am "Release v0.1.0"
-git tag -a v0.1.0 -m "v0.1.0"
-git push origin main v0.1.0
+git commit -am "Release v0.1.1"
+git tag -a v0.1.1 -m "v0.1.1"
+git push origin main v0.1.1
 ```
 2. Optionally create a GitHub Release from the tag (Releases → Draft a new release → choose
-   `v0.1.0` → paste the changelog section). Projects pin the tag, not the Release, so this is only
+   `v0.1.1` → paste the changelog section). Projects pin the tag, not the Release, so this is only
    for reading.
 
 ## 4. Repository settings (once)
@@ -77,7 +77,7 @@ Run these from any scratch directory. Each one fetches from GitHub at the tag:
 
 ```bash
 # llmkit installs from the tag
-uv run --with "llmkit @ git+https://github.com/i-osipchyk/platform@v0.1.0#subdirectory=llmkit" \
+uv run --with "llmkit @ git+https://github.com/i-osipchyk/platform@v0.1.1#subdirectory=llmkit" \
   python -c "import llmkit; print(llmkit.PRICING_VERIFIED_ON)"
 
 # the template renders from GitHub (uses the newest tag)
@@ -87,7 +87,7 @@ cd /tmp/smoke-test && uv sync && uv run pytest && cd - && rm -rf /tmp/smoke-test
 # Terraform can fetch the modules
 mkdir -p /tmp/tf-smoke && cat > /tmp/tf-smoke/main.tf <<'EOF'
 module "bucket" {
-  source  = "git::https://github.com/i-osipchyk/platform.git//terraform/modules/data-bucket?ref=v0.1.0"
+  source  = "git::https://github.com/i-osipchyk/platform.git//terraform/modules/data-bucket?ref=v0.1.1"
   project = "smoke"
   env     = "demo"
 }
@@ -101,9 +101,9 @@ immediately with "unable to find reusable workflow".
 ## 6. Point the existing projects at it
 
 Follow `adoption.md`, one project at a time. The quickest first step for each is adding
-`.github/workflows/ci.yml` that calls `python-ci.yml@v0.1.0`.
+`.github/workflows/ci.yml` that calls `python-ci.yml@v0.1.1`.
 
-**ags already pins `llmkit` to `tag = "v0.1.0"`** in its `[tool.uv.sources]`. Until step 3 is done,
+**ags already pins `llmkit` to `tag = "v0.1.1"`** in its `[tool.uv.sources]`. Until step 3 is done,
 `uv lock` / `uv sync` there can't resolve it (fresh machines, CI, Docker builds). Once the tag
 exists, run `uv lock` in ags and commit the lockfile.
 

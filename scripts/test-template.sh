@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Render the copier template in every feature combination and check each result:
-# uv sync, ruff, mypy, pytest, and (for deploy_lambda) terraform validate.
+# uv sync, ruff, mypy, pytest, actionlint, and (for deploy_lambda) terraform validate.
 # llmkit and the Terraform modules are pointed at this checkout, so nothing needs to be pushed.
 #
 #   scripts/test-template.sh            # all combinations
@@ -39,9 +39,8 @@ check() {
       sed -i.bak -E "s#source *= \"git::https://github.com/[^/]+/platform.git//terraform/modules/([a-z-]+)\?ref=[^\"]+\"#source = \"$ROOT/terraform/modules/\1\"#" infra/main.tf && rm infra/main.tf.bak
       terraform -chdir=infra init -backend=false -input=false >/dev/null
       terraform -chdir=infra validate -no-color
-      python3 -c "import yaml,sys; [yaml.safe_load(open(f)) for f in sys.argv[1:]]" .github/workflows/*.yml 2>/dev/null \
-        || uvx --quiet --from pyyaml python -c "import yaml,sys; [yaml.safe_load(open(f)) for f in sys.argv[1:]]" .github/workflows/*.yml
     fi
+    uvx --quiet --from actionlint-py actionlint .github/workflows/*.yml   # same parser rules as GitHub
   )
 }
 

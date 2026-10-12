@@ -18,7 +18,7 @@ Every function gets these env vars: `PROJECT`, `ENV`, `FUNCTION`, `LLMKIT_PROJEC
 
 ```hcl
 module "app" {
-  source    = "git::https://github.com/i-osipchyk/platform.git//terraform/modules/lambda-app?ref=v0.1.0"
+  source    = "git::https://github.com/i-osipchyk/platform.git//terraform/modules/lambda-app?ref=v0.1.1"
   project   = "gtb"
   env       = var.env
   image_uri = var.image_uri
