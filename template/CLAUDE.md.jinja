@@ -1,0 +1,30 @@
+# {{ project_name }}
+
+{{ description }}
+
+This project follows the ~/dev platform conventions (see `../CLAUDE.md` and `../platform/docs/`).
+Generated from the platform template at {{ platform_version }}; `.copier-answers.yml` records the choices.
+
+## Commands
+
+- `uv sync`, then `uv run pytest`, `uv run ruff check .`, and `uv run mypy`
+- Integration tests (real services): `uv run pytest -m integration`
+{%- if deploy_lambda %}
+- Deploy: push to `main`. CI deploys{% if 'demo' in envs %} demo, then live after approval{% else %} live after approval{% endif %}. Never run `terraform apply` locally.
+- Secrets: `uv run python scripts/put_secrets.py --env <env>`. Their names are in SSM under `/{{ slug }}/<env>/`.
+{%- endif %}
+
+## Layout
+
+- `src/{{ package }}/config.py` loads the environment: `.env` locally, SSM on Lambda.
+{%- if uses_llm %}
+- `src/{{ package }}/llm.py` is the **only** place that talks to an LLM. Every call goes through llmkit with a `component`.
+{%- endif %}
+{%- if deploy_lambda %}
+- `src/{{ package }}/handlers.py` holds the Lambda entry points. Keep them thin.
+- `infra/` holds Terraform. It calls the platform `lambda-app` / `data-bucket` modules, pinned to a tag.
+{%- endif %}
+
+## Project-specific rules
+
+<!-- Domain rules, invariants, things Claude must never do in this project. -->

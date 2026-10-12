@@ -1,0 +1,40 @@
+# {{ project_name }}
+
+{{ description }}
+
+Generated from [platform](https://github.com/{{ github_owner }}/platform) {{ platform_version }}
+(`uvx copier update --trust` pulls template changes).
+
+## Develop
+
+```bash
+uv sync
+cp .env.example .env    # fill in
+uv run pytest
+uv run ruff check . && uv run mypy
+```
+{%- if deploy_lambda %}
+
+## Deploy
+
+Pushing to `main` runs CI, then deploys{% if 'demo' in envs %} to demo, then (after approval) to live{% else %} to live (after approval){% endif %}.
+You can also deploy one environment by hand: Actions → Deploy → Run workflow.
+
+One-time setup (platform `docs/deployment.md` has the details):
+1. Add `{{ slug }} = { repo = "{{ project_name }}"{% if envs == 'live' %}, envs = ["live"]{% endif %} }` to platform `bootstrap/terraform.tfvars`, then apply it.
+2. GitHub repo → Settings → Environments: create {% for e in envs.split(',') %}`{{ e }}`{% if not loop.last %} and {% endif %}{% endfor %}. Give `live` a required reviewer.
+3. GitHub repo → Settings → Variables: set `AWS_ACCOUNT_ID`.
+4. Secrets: `uv run python scripts/put_secrets.py --env <env>`.
+
+Functions start with their schedules disabled (`schedules_enabled = false` in
+`infra/env/*.tfvars`). Flip that once a manual invoke looks right.
+
+### Terraform by hand (plan only; applies go through CI)
+
+```bash
+ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+terraform -chdir=infra init -backend-config="bucket=tfstate-$ACCOUNT-{{ aws_region }}" \
+  -backend-config="key={{ slug }}/<env>.tfstate" -backend-config="region={{ aws_region }}"
+terraform -chdir=infra plan -var-file=env/<env>.tfvars -var="image_uri=<repo@sha256:...>"
+```
+{%- endif %}

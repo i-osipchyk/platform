@@ -1,0 +1,26 @@
+"""The project's single LLM seam. Everything that talks to a model goes through `llm`.
+
+llmkit attributes each call to project ({{ slug }}) / env / component and prices it.
+Pick `component` names that answer "what part of the project spent this" (agent, job, step).
+"""
+
+from __future__ import annotations
+
+from functools import cache
+
+from llmkit import LLM
+
+DEFAULT_MODEL = "deepseek-flash"
+
+
+@cache
+def llm() -> LLM:
+    # LLMKIT_PROJECT / LLMKIT_ENV come from .env locally and from the lambda-app module on AWS.
+    return LLM()
+
+
+def ask(prompt: str, *, component: str, system: str = "", model: str = DEFAULT_MODEL) -> str:
+    """Minimal example: one-shot JSON-free completion."""
+    messages = [{"role": "system", "content": system}] if system else []
+    messages.append({"role": "user", "content": prompt})
+    return llm().chat(model=model, component=component, messages=messages, temperature=0).text

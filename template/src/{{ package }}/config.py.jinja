@@ -1,0 +1,47 @@
+"""Environment loading: one call at start-up, then read os.environ.
+
+Locally: values come from .env (gitignored; see .env.example).
+On Lambda: SSM parameters under SECRETS_PATH (/{{ slug }}/<env>) and SHARED_SECRETS_PATH
+(/platform/shared) are copied into os.environ, kebab-case name -> UPPER_SNAKE, e.g.
+/{{ slug }}/demo/deepseek-api-key -> DEEPSEEK_API_KEY. Env vars already set win.
+"""
+
+from __future__ import annotations
+
+import os
+
+
+def load_env() -> None:
+    if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        _load_ssm()
+    else:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+{%- if deploy_lambda %}
+
+
+def _load_ssm() -> None:
+    import boto3
+
+    ssm = boto3.client("ssm")
+    for path in filter(None, (os.getenv("SHARED_SECRETS_PATH"), os.getenv("SECRETS_PATH"))):
+        for page in ssm.get_paginator("get_parameters_by_path").paginate(
+            Path=path, Recursive=False, WithDecryption=True
+        ):
+            for p in page["Parameters"]:
+                key = p["Name"].rsplit("/", 1)[-1].replace("-", "_").upper()
+                os.environ.setdefault(key, p["Value"])
+{%- else %}
+
+
+def _load_ssm() -> None:
+    raise RuntimeError("this project isn't set up for Lambda (deploy_lambda=false)")
+{%- endif %}
+
+
+def require(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"{name} is not set (add it to .env locally / SSM when deployed)")
+    return value

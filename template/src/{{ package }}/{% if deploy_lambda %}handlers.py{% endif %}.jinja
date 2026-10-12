@@ -1,0 +1,29 @@
+"""Lambda entry points. One image, one function per handler (infra/main.tf `functions`).
+
+Keep handlers thin: load env, call into the package, flush telemetry, return.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+from typing import Any
+
+from {{ package }}.config import load_env
+
+logging.getLogger().setLevel(logging.INFO)
+load_env()  # once per cold start
+logger = logging.getLogger(__name__)
+
+
+def example(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    logger.info("example run in %s (%s)", os.getenv("ENV"), os.getenv("GIT_SHA"))
+{%- if uses_llm %}
+    from {{ package }}.llm import llm
+
+    try:
+        ...  # do the work
+    finally:
+        llm().flush()
+{%- endif %}
+    return {"ok": True}

@@ -1,0 +1,150 @@
+# Reusable: build the project image (arm64), push it to ECR, terraform plan + apply one env.
+#
+# Assumes bootstrap has run: state bucket tfstate-<account>-<region>, ECR repo <project>, and
+# role gh-deploy-<project> trusted from this repo's GitHub Environment named like `environment`.
+# Caller must grant `id-token: write`. See docs/deployment.md.
+#
+#   jobs:
+#     demo:
+#       uses: i-osipchyk/platform/.github/workflows/lambda-deploy.yml@v0.1.0
+#       permissions: { id-token: write, contents: read }
+#       with:
+#         project: gtb
+#         environment: demo
+#         aws-account-id: ${{ vars.AWS_ACCOUNT_ID }}
+#
+# The image is tagged with the first 12 chars of the commit SHA. If that tag already exists
+# (demo built it, live reuses it) the build is skipped, so live runs exactly what demo ran.
+name: lambda-deploy
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        type: string
+        required: true
+      environment:
+        description: GitHub Environment = Terraform env (tfvars infra/env/<environment>.tfvars)
+        type: string
+        required: true
+      aws-account-id:
+        type: string
+        required: true
+      aws-region:
+        type: string
+        default: eu-west-1
+      ref:
+        description: Commit to deploy (default: the triggering commit / workflow_run head)
+        type: string
+        default: ""
+      tf-dir:
+        type: string
+        default: infra
+      tf-vars:
+        description: Extra -var / -var-file arguments for plan
+        type: string
+        default: ""
+      terraform-version:
+        type: string
+        default: "1.15.5"
+      runner:
+        description: ubuntu-24.04-arm builds arm64 natively; any other runner uses QEMU
+        type: string
+        default: ubuntu-24.04-arm
+      docker-context:
+        type: string
+        default: "."
+      pre-apply:
+        description: Shell run after plan, before apply (e.g. wait for running executions)
+        type: string
+        default: ""
+      plan-only:
+        type: boolean
+        default: false
+    outputs:
+      image-uri:
+        value: ${{ jobs.deploy.outputs.image-uri }}
+
+jobs:
+  deploy:
+    runs-on: ${{ inputs.runner }}
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: deploy-${{ inputs.project }}-${{ inputs.environment }}
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      image-uri: ${{ steps.image.outputs.uri }}
+    env:
+      AWS_REGION: ${{ inputs.aws-region }}
+      PROJECT: ${{ inputs.project }}
+      ENVIRONMENT: ${{ inputs.environment }}
+      REPO: ${{ inputs.aws-account-id }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com/${{ inputs.project }}
+      STATE_BUCKET: tfstate-${{ inputs.aws-account-id }}-${{ inputs.aws-region }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/gh-deploy-${{ inputs.project }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - if: ${{ !contains(inputs.runner, 'arm') }}
+        uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push (skipped if this commit's image exists)
+        id: image
+        run: |
+          SHA="$(git rev-parse HEAD)"
+          TAG="${SHA:0:12}"
+          if aws ecr describe-images --repository-name "$PROJECT" --image-ids imageTag="$TAG" >/dev/null 2>&1; then
+            echo "reusing $REPO:$TAG"
+          else
+            docker buildx build --platform linux/arm64 --provenance=false \
+              --build-arg GIT_SHA="$SHA" -t "$REPO:$TAG" --push "${{ inputs.docker-context }}"
+          fi
+          DIGEST="$(aws ecr describe-images --repository-name "$PROJECT" --image-ids imageTag="$TAG" \
+            --query 'imageDetails[0].imageDigest' --output text)"
+          echo "uri=$REPO@$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "image: \`$REPO@$DIGEST\` ($TAG)" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform-version }}
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: ${{ inputs.tf-dir }}
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=$STATE_BUCKET" \
+            -backend-config="key=$PROJECT/$ENVIRONMENT.tfstate" \
+            -backend-config="region=$AWS_REGION"
+
+      - name: Terraform plan
+        working-directory: ${{ inputs.tf-dir }}
+        run: |
+          terraform plan -input=false -no-color -out=tfplan \
+            -var-file="env/$ENVIRONMENT.tfvars" \
+            -var="region=$AWS_REGION" \
+            -var="image_uri=${{ steps.image.outputs.uri }}" \
+            ${{ inputs.tf-vars }} | tee plan.txt
+          { echo '<details><summary>terraform plan</summary>'; echo; echo '```'; \
+            tail -c 60000 plan.txt; echo '```'; echo '</details>'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Pre-apply
+        if: inputs.pre-apply != '' && !inputs.plan-only
+        run: ${{ inputs.pre-apply }}
+
+      - name: Terraform apply
+        if: ${{ !inputs.plan-only }}
+        working-directory: ${{ inputs.tf-dir }}
+        run: terraform apply -input=false -no-color tfplan

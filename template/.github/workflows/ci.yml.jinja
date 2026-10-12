@@ -1,0 +1,15 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: {{ github_owner }}/platform/.github/workflows/python-ci.yml@{{ platform_version }}
+    with:
+      mypy: true

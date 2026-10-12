@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Secrets
+.env
+.env.*
+!.env.example
+.envrc
+
+# Terraform
+infra/.terraform/
+infra/tfplan
+infra/plan.txt
+*.tfstate
+*.tfstate.*
+
+# Local data / OS
+.DS_Store
+data/local/

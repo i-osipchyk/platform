@@ -1,0 +1,11 @@
+# After the first (local-state) apply: cp backend.tf.example backend.tf, fill in the account id,
+# then `terraform init -migrate-state`. Bootstrap state then lives next to every project's.
+terraform {
+  backend "s3" {
+    bucket       = "tfstate-<ACCOUNT_ID>-eu-west-1"
+    key          = "platform/bootstrap.tfstate"
+    region       = "eu-west-1"
+    use_lockfile = true
+    encrypt      = true
+  }
+}

@@ -1,0 +1,23 @@
+# This repo's own CI (the other workflows here are reusable ones for projects).
+name: platform-ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.5"
+          terraform_wrapper: false
+      - run: scripts/check.sh

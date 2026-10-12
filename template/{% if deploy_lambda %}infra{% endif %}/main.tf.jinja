@@ -1,0 +1,26 @@
+module "data" {
+  source  = "git::https://github.com/{{ github_owner }}/platform.git//terraform/modules/data-bucket?ref={{ platform_version }}"
+  project = var.project
+  env     = var.env
+}
+
+module "app" {
+  source    = "git::https://github.com/{{ github_owner }}/platform.git//terraform/modules/lambda-app?ref={{ platform_version }}"
+  project   = var.project
+  env       = var.env
+  image_uri = var.image_uri
+
+  functions = {
+    example = { handler = "{{ package }}.handlers.example", timeout = 60 }
+  }
+
+  schedules = {
+    example = { function = "example", expression = "cron(0 9 ? * MON-FRI *)", timezone = "UTC" }
+  }
+  schedules_enabled = var.schedules_enabled
+
+  environment = {
+    DATA_BUCKET = module.data.name
+  }
+  write_bucket_arns = [module.data.arn]
+}

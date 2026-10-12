@@ -1,0 +1,23 @@
+variable "project" {
+  type    = string
+  default = "{{ slug }}"
+}
+
+variable "env" {
+  type = string
+}
+
+variable "region" {
+  type    = string
+  default = "{{ aws_region }}"
+}
+
+variable "image_uri" {
+  description = "ECR image by digest; CI passes it."
+  type        = string
+}
+
+variable "schedules_enabled" {
+  type    = bool
+  default = false
+}

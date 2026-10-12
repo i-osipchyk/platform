@@ -1,0 +1,68 @@
+# New-project template. See docs/new-project.md.
+#
+#   uvx copier copy --trust ~/dev/platform ~/dev/<project-name>        # from the local checkout
+#   uvx copier copy --trust gh:i-osipchyk/platform ~/dev/<project-name> # from GitHub (latest tag)
+#   cd ~/dev/<project-name> && uvx copier update --trust               # pull later template changes
+
+_subdirectory: template
+_min_copier_version: "9.0"
+_answers_file: .copier-answers.yml
+
+project_name:
+  type: str
+  help: Repo / folder name (kebab-case)
+  validator: "{% if not (project_name | regex_search('^[a-z][a-z0-9-]+$')) %}kebab-case only{% endif %}"
+
+slug:
+  type: str
+  help: Short slug, used for AWS names, the project tag, SSM paths and llmkit (2-16 chars [a-z0-9], no dashes)
+  default: "{{ project_name | replace('-', '') | truncate(16, True, '') }}"
+  validator: "{% if not (slug | regex_search('^[a-z][a-z0-9]{1,15}$')) %}2-16 lowercase letters/digits, starting with a letter{% endif %}"
+
+package:
+  type: str
+  help: Python package name
+  default: "{{ slug }}"
+  validator: "{% if not (package | regex_search('^[a-z_][a-z0-9_]*$')) %}not a valid package name{% endif %}"
+
+description:
+  type: str
+  help: One-line description
+  default: ""
+
+uses_llm:
+  type: bool
+  help: Does it call LLMs? (adds llmkit)
+  default: false
+
+deploy_lambda:
+  type: bool
+  help: Deploy to AWS Lambda? (adds Dockerfile, infra/, deploy workflow, secrets helpers)
+  default: false
+
+envs:
+  type: str
+  help: Deploy environments (deployed in this order on every push to main; live waits for approval)
+  choices:
+    demo then live: demo,live
+    live only (paper / forward tests that need no staging): live
+  default: demo,live
+  when: "{{ deploy_lambda }}"
+
+aws_region:
+  type: str
+  default: eu-west-1
+  when: "{{ deploy_lambda }}"
+
+github_owner:
+  type: str
+  default: i-osipchyk
+
+platform_version:
+  type: str
+  help: platform tag to pin modules, workflows and llmkit to
+  default: v0.1.0
+
+_tasks:
+  - "git init -b main -q"
+  - "uv lock -q || echo 'uv lock failed (llmkit git tag not pushed yet?) - run it later'"

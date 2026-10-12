@@ -1,0 +1,71 @@
+# Reusable: lint, type-check and test a uv project.
+#
+#   jobs:
+#     ci:
+#       uses: i-osipchyk/platform/.github/workflows/python-ci.yml@v0.1.0
+#       with:
+#         mypy: true
+name: python-ci
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        type: string
+        default: "3.12"
+      working-directory:
+        type: string
+        default: "."
+      sync-args:
+        description: Extra args for `uv sync` (e.g. --all-extras for projects with optional deps)
+        type: string
+        default: ""
+      ruff:
+        type: boolean
+        default: true
+      ruff-format:
+        type: boolean
+        default: false
+      mypy:
+        type: boolean
+        default: false
+      pytest-args:
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ inputs.python-version }}
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --frozen ${{ inputs.sync-args }}
+
+      - name: Ruff
+        if: inputs.ruff
+        run: uv run ruff check .
+
+      - name: Ruff format
+        if: inputs.ruff-format
+        run: uv run ruff format --check .
+
+      - name: Mypy
+        if: inputs.mypy
+        run: uv run mypy
+
+      - name: Pytest
+        run: uv run pytest ${{ inputs.pytest-args }}

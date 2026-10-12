@@ -1,0 +1,26 @@
+import {{ package }}
+from {{ package }}.config import require
+
+
+def test_imports():
+    assert {{ package }}.__doc__
+
+
+def test_require_reports_missing(monkeypatch):
+    monkeypatch.delenv("SURELY_NOT_SET", raising=False)
+    try:
+        require("SURELY_NOT_SET")
+    except RuntimeError as exc:
+        assert "SURELY_NOT_SET" in str(exc)
+    else:
+        raise AssertionError("expected RuntimeError")
+{%- if deploy_lambda %}
+
+
+def test_handler(monkeypatch):
+    monkeypatch.setenv("LLMKIT_SINKS", "none")
+    monkeypatch.setenv("LLMKIT_PROJECT", "{{ slug }}")
+    from {{ package }} import handlers
+
+    assert handlers.example({}, None) == {"ok": True}
+{%- endif %}
