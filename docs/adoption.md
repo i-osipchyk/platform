@@ -7,7 +7,7 @@ Status and migration plan for the projects that existed before the platform (sca
 |---|---|---|---|---|---|---|
 | gold-tokyo-breakout | `gtb` | ☐ | ✅ (own bucket) | ☐ | ☐ (`scripts/deploy.sh`) | n/a (no LLM) |
 | polymarket-bond-hype | `bondhype` | ☐ | ❌ **local state** | ☐ | ☐ (manual) | ☐ (usage discarded) |
-| ags-trading-agentic-system | `ags` | ☐ | n/a (not deployed) | ☐ (build Stage 27–30 on it) | ☐ | ☐ |
+| ags-trading-agentic-system | `ags` | ✅ (`ruff: false`) | ✅ (`ags/live.tfstate`, not yet applied) | ✅ | ✅ (`live` only) | ✅ |
 | hermes | `hermes` | ☐ | n/a (local only) | n/a | n/a | ☐ |
 
 Order: **bootstrap** → **bondhype state** (biggest risk) → **llmkit everywhere** (cost

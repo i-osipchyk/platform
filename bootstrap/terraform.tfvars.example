@@ -7,7 +7,7 @@ alert_email  = "" # budget alerts
 projects = {
   gtb      = { repo = "gold-tokyo-breakout", budget_usd = 10 }
   bondhype = { repo = "polymarket-bond-hype", envs = ["live"], budget_usd = 10 }
-  ags      = { repo = "ags-trading-agentic-system", budget_usd = 15 }
+  ags      = { repo = "ags-trading-agentic-system", envs = ["live"], budget_usd = 15 }
 }
 
 # Fresh account: the cost allocation tags can only be activated once AWS has seen them.

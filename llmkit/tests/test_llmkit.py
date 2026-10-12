@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from llmkit import LLM, CallRecord, JsonlSink, LangfuseSink, Tracker, Usage, cost
-from llmkit.pricing import deepseek_time_factor, price_for
+from llmkit.pricing import deepseek_is_peak, price_for
 from llmkit.report import aggregate, read_records, render
 from llmkit.sinks import default_sinks
 
@@ -58,22 +58,38 @@ def test_missing_usage_is_zero():
 # --- pricing ------------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(("at", "factor"), [
-    (datetime(2026, 10, 12, 1, 0, tzinfo=UTC), 1.0),
-    (datetime(2026, 10, 12, 3, 59, tzinfo=UTC), 1.0),
-    (datetime(2026, 10, 12, 4, 0, tzinfo=UTC), 0.5),
-    (datetime(2026, 10, 12, 6, 0, tzinfo=UTC), 1.0),
-    (datetime(2026, 10, 12, 10, 0, tzinfo=UTC), 0.5),
-    (WEEKEND, 0.5),
+@pytest.mark.parametrize(("at", "peak"), [
+    (datetime(2026, 10, 12, 0, 59, tzinfo=UTC), False),
+    (datetime(2026, 10, 12, 1, 0, tzinfo=UTC), True),
+    (datetime(2026, 10, 12, 3, 59, tzinfo=UTC), True),
+    (datetime(2026, 10, 12, 4, 0, tzinfo=UTC), False),
+    (datetime(2026, 10, 12, 6, 0, tzinfo=UTC), True),
+    (datetime(2026, 10, 12, 9, 59, tzinfo=UTC), True),
+    (datetime(2026, 10, 12, 10, 0, tzinfo=UTC), False),
+    (datetime(2026, 10, 16, 8, 0, tzinfo=UTC), True),   # Friday
+    (WEEKEND, False),
 ])
-def test_deepseek_peak_windows(at, factor):
-    assert deepseek_time_factor(at) == factor
+def test_deepseek_peak_windows(at, peak):
+    assert deepseek_is_peak(at) is peak
 
 
-def test_deepseek_flash_cost_peak_vs_off_peak():
-    u = Usage(input_tokens=1_000_000, output_tokens=1_000_000, cache_read_tokens=1_000_000)
-    assert cost("deepseek-flash", u, PEAK).total == pytest.approx(0.30 + 1.20 + 0.006)
-    assert cost("deepseek-flash", u, OFF_PEAK).total == pytest.approx((0.30 + 1.20 + 0.006) / 2)
+# Documented rates, USD / 1M tokens: (cache miss, cache hit, output) peak / off-peak.
+DEEPSEEK_DOCS = {
+    "deepseek-flash": ((0.30, 0.006, 1.20), (0.15, 0.003, 0.60)),
+    "deepseek-v4-flash": ((0.30, 0.006, 1.20), (0.15, 0.003, 0.60)),
+    "deepseek-v4-flash-vision-exp": ((0.30, 0.006, 1.20), (0.15, 0.003, 0.60)),
+    "deepseek-v4-pro": ((1.32, 0.044, 3.96), (0.66, 0.022, 1.98)),
+}
+
+
+@pytest.mark.parametrize("model", DEEPSEEK_DOCS)
+@pytest.mark.parametrize(("at", "column"), [(PEAK, 0), (OFF_PEAK, 1), (WEEKEND, 1)])
+def test_deepseek_rates_match_docs(model, at, column):
+    miss, hit, out = DEEPSEEK_DOCS[model][column]
+    one_m = 1_000_000
+    assert cost(model, Usage(input_tokens=one_m), at).total == pytest.approx(miss)
+    assert cost(model, Usage(cache_read_tokens=one_m), at).total == pytest.approx(hit)
+    assert cost(model, Usage(output_tokens=one_m), at).total == pytest.approx(out)
 
 
 def test_longest_prefix_wins_and_unknown_is_unpriced():

@@ -5,7 +5,8 @@ dated snapshots still resolve. There is deliberately no catch-all: an unknown mo
 None ("unpriced") instead of silently borrowing another model's rates.
 
 DeepSeek bills by time of day: peak is 01:00-04:00 and 06:00-10:00 UTC, Monday-Friday, and
-everything else costs half. Calls are priced at their request start time. Chinese public
+everything else is off-peak (half price; both columns are stored as documented). Calls are
+priced at their request start time. Chinese public
 holidays (off-peak at DeepSeek) are not modelled, so those days slightly overstate cost.
 
 Re-verify before trusting a figure, then bump PRICING_VERIFIED_ON:
@@ -34,41 +35,45 @@ class Rates:
     cache_read: float
     cache_write: float | None = None  # None: billed like uncached input
 
-    def scaled(self, factor: float) -> Rates:
-        return Rates(
-            self.input * factor,
-            self.output * factor,
-            self.cache_read * factor,
-            None if self.cache_write is None else self.cache_write * factor,
-        )
-
 
 @dataclass(frozen=True, slots=True)
 class Price:
-    rates: Rates
-    # Returns the multiplier for a request started at `at` (UTC); None means flat pricing.
-    time_factor: Callable[[datetime], float] | None = None
+    rates: Rates                       # flat price, or the PEAK price when off_peak is set
+    off_peak: Rates | None = None      # price outside peak hours, exactly as documented
+    is_peak: Callable[[datetime], bool] | None = None  # request start (UTC) -> peak?
 
     def rates_at(self, at: datetime) -> Rates:
-        return self.rates if self.time_factor is None else self.rates.scaled(self.time_factor(at))
+        if self.off_peak is None or self.is_peak is None or self.is_peak(at):
+            return self.rates
+        return self.off_peak
 
 
-def deepseek_time_factor(at: datetime) -> float:
-    """1.0 in DeepSeek peak hours, 0.5 otherwise. `at` must be timezone-aware UTC."""
-    if at.weekday() >= 5:
-        return 0.5
-    peak = 1 <= at.hour < 4 or 6 <= at.hour < 10
-    return 1.0 if peak else 0.5
+def deepseek_is_peak(at: datetime) -> bool:
+    """DeepSeek peak: 01:00-04:00 and 06:00-10:00 UTC, Monday-Friday. `at` is aware UTC."""
+    return at.weekday() < 5 and (1 <= at.hour < 4 or 6 <= at.hour < 10)
 
 
-_DS = deepseek_time_factor
+def _deepseek(peak: Rates, off_peak: Rates) -> Price:
+    return Price(peak, off_peak, deepseek_is_peak)
 
-# Rates are the PEAK (full) price; time_factor scales them down off-peak.
+
+# DeepSeek, from https://api-docs.deepseek.com/quick_start/pricing (verified 2026-10-12).
+# Columns as documented, USD / 1M tokens: input cache miss, output, input cache hit.
+_DEEPSEEK_FLASH = _deepseek(
+    peak=Rates(input=0.30, output=1.20, cache_read=0.006),
+    off_peak=Rates(input=0.15, output=0.60, cache_read=0.003),
+)
+_DEEPSEEK_V4_PRO = _deepseek(
+    peak=Rates(input=1.32, output=3.96, cache_read=0.044),
+    off_peak=Rates(input=0.66, output=1.98, cache_read=0.022),
+)
+
 _TABLE: dict[str, Price] = {
-    # --- DeepSeek (verified 2026-10-12) ------------------------------------------------------
-    "deepseek-flash": Price(Rates(input=0.30, output=1.20, cache_read=0.006), _DS),
-    "deepseek-v4-flash": Price(Rates(input=0.30, output=1.20, cache_read=0.006), _DS),
-    "deepseek-v4-pro": Price(Rates(input=1.32, output=3.96, cache_read=0.044), _DS),
+    # --- DeepSeek ----------------------------------------------------------------------------
+    "deepseek-flash": _DEEPSEEK_FLASH,
+    # Legacy names the API still accepts for flash (vision-exp is covered by the prefix).
+    "deepseek-v4-flash": _DEEPSEEK_FLASH,
+    "deepseek-v4-pro": _DEEPSEEK_V4_PRO,
     # deepseek-chat / deepseek-reasoner are no longer on the pricing page: left unpriced.
     # --- Anthropic (from hermes, verified 2026-09-30) ----------------------------------------
     "claude-fable-5-1": Price(Rates(10.00, 50.00, 0.25, 12.50)),

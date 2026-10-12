@@ -34,12 +34,13 @@ def main(argv: list[str] | None = None) -> None:
         rows = aggregate(read_records(args.file), by, args.since, args.until, args.project)
         print(render(rows, by) if rows else f"no records in {args.file}")
     else:
-        print(f"verified on {pricing.PRICING_VERIFIED_ON} (USD / MTok, peak rates)")
+        print(f"verified on {pricing.PRICING_VERIFIED_ON} (USD / MTok)")
         for prefix, p in sorted(pricing._TABLE.items()):
-            r = p.rates
-            note = "  (time-of-day)" if p.time_factor else ""
-            print(f"  {prefix:22} in {r.input:>6} out {r.output:>6} "
-                  f"cache_read {r.cache_read:>6}{note}")
+            columns = [("", p.rates)] if p.off_peak is None else [
+                ("peak", p.rates), ("off-peak", p.off_peak)]
+            for label, r in columns:
+                print(f"  {prefix:22} {label:8} in {r.input:>6} out {r.output:>6} "
+                      f"cache_read {r.cache_read:>6}")
 
 
 if __name__ == "__main__":
