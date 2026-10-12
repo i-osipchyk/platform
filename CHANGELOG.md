@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- bootstrap: the `gh-deploy-<slug>` trust policy also accepts GitHub's OIDC subject with
+  immutable ids (`repo:<owner>@<id>/<repo>@<id>:environment:<env>`). Without it, repos whose
+  tokens use that form fail with "Not authorized to perform sts:AssumeRoleWithWebIdentity".
+  Bootstrap-only (applied from a checkout): no new tag needed for projects.
+
 ## v0.1.1 (2026-10-12)
 
 - Fix: `lambda-deploy.yml` failed to parse on GitHub ("Invalid workflow file", line 39). An
