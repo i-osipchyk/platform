@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- bootstrap: the deploy role may call `states:ValidateStateMachineDefinition` (evaluated against
+  `stateMachine:*`). Projects with a Step Functions state machine (ags) failed their first deploy
+  without it. Bootstrap-only: re-apply bootstrap, no new tag.
 - bootstrap: the `gh-deploy-<slug>` trust policy also accepts GitHub's OIDC subject with
   immutable ids (`repo:<owner>@<id>/<repo>@<id>:environment:<env>`). Without it, repos whose
   tokens use that form fail with "Not authorized to perform sts:AssumeRoleWithWebIdentity".

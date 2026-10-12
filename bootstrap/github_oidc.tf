@@ -80,14 +80,16 @@ data "aws_iam_policy_document" "deploy" {
   }
 
   # Read-only calls Terraform makes that don't support resource scoping.
+  # states:ValidateStateMachineDefinition: the AWS provider validates a definition before
+  # creating/updating a state machine, and IAM evaluates that call against stateMachine:*.
   statement {
     sid = "Describe"
     actions = [
       "cloudwatch:DescribeAlarms", "iam:GetPolicy", "iam:GetPolicyVersion",
       "lambda:GetAccountSettings", "lambda:ListFunctions", "logs:DescribeLogGroups",
       "scheduler:ListScheduleGroups", "scheduler:ListSchedules", "sns:ListTopics",
-      "ssm:DescribeParameters", "states:ListStateMachines", "events:ListRules",
-      "s3:ListAllMyBuckets",
+      "ssm:DescribeParameters", "states:ListStateMachines", "states:ValidateStateMachineDefinition",
+      "events:ListRules", "s3:ListAllMyBuckets",
     ]
     resources = ["*"]
   }
