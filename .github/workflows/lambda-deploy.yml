@@ -6,7 +6,7 @@
 #
 #   jobs:
 #     demo:
-#       uses: i-osipchyk/platform/.github/workflows/lambda-deploy.yml@v0.1.1
+#       uses: i-osipchyk/platform/.github/workflows/lambda-deploy.yml@v0.1.2
 #       permissions: { id-token: write, contents: read }
 #       with:
 #         project: gtb
@@ -134,13 +134,18 @@ jobs:
       - name: Terraform plan
         working-directory: ${{ inputs.tf-dir }}
         run: |
+          # pipefail + 2>&1: a failed plan fails this step (not only the later apply, as
+          # "Cannot apply incomplete plan"), and its error reaches the log and the job summary.
+          set -o pipefail
+          status=0
           terraform plan -input=false -no-color -out=tfplan \
             -var-file="env/$ENVIRONMENT.tfvars" \
             -var="region=$AWS_REGION" \
             -var="image_uri=${{ steps.image.outputs.uri }}" \
-            ${{ inputs.tf-vars }} | tee plan.txt
+            ${{ inputs.tf-vars }} 2>&1 | tee plan.txt || status=$?
           { echo '<details><summary>terraform plan</summary>'; echo; echo '```'; \
             tail -c 60000 plan.txt; echo '```'; echo '</details>'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
 
       - name: Pre-apply
         if: inputs.pre-apply != '' && !inputs.plan-only

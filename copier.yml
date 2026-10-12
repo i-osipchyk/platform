@@ -56,7 +56,7 @@ github_owner:
 platform_version:
   type: str
   help: platform tag to pin modules, workflows and llmkit to
-  default: v0.1.1
+  default: v0.1.2
 
 _tasks:
   - "git init -b main -q"

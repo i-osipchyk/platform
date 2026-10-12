@@ -29,11 +29,11 @@ Every LLM call goes through llmkit, which records project / env / component, tok
 
 One version for the whole repo: tags `vMAJOR.MINOR.PATCH`. Projects pin it in three places, all
 written by the template, and `copier update` bumps all three:
-- Terraform module sources (`?ref=v0.1.1`)
-- reusable workflows (`@v0.1.1`)
-- llmkit (`tag = "v0.1.1"`)
+- Terraform module sources (`?ref=v0.1.2`)
+- reusable workflows (`@v0.1.2`)
+- llmkit (`tag = "v0.1.2"`)
 
-First-time setup (create the GitHub repo, push, tag `v0.1.1`) and the release steps:
+First-time setup (create the GitHub repo, push, tag `v0.1.2`) and the release steps:
 [docs/publishing.md](docs/publishing.md).
 
 Breaking changes (module variables, workflow inputs, llmkit API) bump MINOR while on `0.x` and are

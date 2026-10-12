@@ -30,7 +30,7 @@ on: [push, pull_request, workflow_dispatch]
 permissions: { contents: read }
 jobs:
   ci:
-    uses: i-osipchyk/platform/.github/workflows/python-ci.yml@v0.1.1
+    uses: i-osipchyk/platform/.github/workflows/python-ci.yml@v0.1.2
     with:
       mypy: false        # true where mypy already passes (gtb, hermes)
 ```
@@ -126,9 +126,9 @@ After both envs are moved, delete the old `gtb-terraform-state-*` bucket.
 
 ### 2. Module, using `moved` blocks (no replacements expected)
 ```hcl
-module "records" { source = ".../data-bucket?ref=v0.1.1"; project = "gtb"; env = var.env; purpose = "records" }
+module "records" { source = ".../data-bucket?ref=v0.1.2"; project = "gtb"; env = var.env; purpose = "records" }
 module "app" {
-  source = ".../lambda-app?ref=v0.1.1"
+  source = ".../lambda-app?ref=v0.1.2"
   project = "gtb"; env = var.env; image_uri = var.image_uri
   functions = {
     morning   = { handler = "gtb.runs.app.morning_handler",   timeout = 360, retries = 2, max_event_age = 300 }
