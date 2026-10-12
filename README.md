@@ -13,6 +13,7 @@ Shared defaults for every project in `~/dev`: how they're built, deployed and ob
 | Deploy | `.github/workflows/lambda-deploy.yml` (reusable) | [docs/deployment.md](docs/deployment.md) |
 | LLM calls, cost per project | `llmkit/` | [docs/llm-observability.md](docs/llm-observability.md), [llmkit/README.md](llmkit/README.md) |
 | Bringing an existing project in line | | [docs/adoption.md](docs/adoption.md) |
+| Putting this repo on GitHub, releasing versions | | [docs/publishing.md](docs/publishing.md) |
 
 ## Stack in one paragraph
 
@@ -32,10 +33,8 @@ written by the template, and `copier update` bumps all three:
 - reusable workflows (`@v0.1.0`)
 - llmkit (`tag = "v0.1.0"`)
 
-Releasing:
-1. Update `CHANGELOG.md`.
-2. Run `scripts/check.sh`.
-3. `git tag vX.Y.Z && git push --tags`.
+First-time setup (create the GitHub repo, push, tag `v0.1.0`) and the release steps:
+[docs/publishing.md](docs/publishing.md).
 
 Breaking changes (module variables, workflow inputs, llmkit API) bump MINOR while on `0.x` and are
 called out in the changelog with the migration.

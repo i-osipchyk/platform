@@ -6,7 +6,7 @@ bumps its pin.
 
 ## Layout
 
-- `docs/`: conventions, deployment, llm-observability, new-project, adoption (status of the existing projects)
+- `docs/`: conventions, deployment, llm-observability, new-project, adoption (status of the existing projects), publishing (GitHub repo + releases)
 - `bootstrap/`: account-level Terraform, applied by hand once (state bucket, OIDC, deploy roles, ECR, alarms, budgets)
 - `terraform/modules/{lambda-app,data-bucket}`: project-level modules
 - `.github/workflows/{python-ci,lambda-deploy}.yml`: reusable workflows (`workflow_call`)
@@ -23,6 +23,8 @@ bumps its pin.
 
 ## Rules for changing this repo
 
+- Never push, tag, or move/delete a tag without the user asking in the current conversation.
+  Projects pin tags, so a published tag must never change (docs/publishing.md).
 - **Never `terraform apply` bootstrap** without the user asking in the current conversation. It
   changes IAM for every project.
 - Changes to a module variable, a workflow input, the llmkit public API or a template question
