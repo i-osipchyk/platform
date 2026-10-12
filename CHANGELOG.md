@@ -1,7 +1,12 @@
 # Changelog
 
-## Unreleased
+## v0.1.2 (2026-10-12)
 
+- Fix: `lambda-deploy.yml` hid a failed `terraform plan` (piped into `tee` without `pipefail`),
+  so the job went on to fail in apply with "Cannot apply incomplete plan", and the plan's error
+  (stderr) was in neither the summary nor `plan.txt`. The plan step now fails on error and shows
+  it in the job summary. Projects: bump every pin to `v0.1.2`; llmkit and the modules are
+  unchanged.
 - bootstrap: the deploy role may call `states:ValidateStateMachineDefinition` (evaluated against
   `stateMachine:*`). Projects with a Step Functions state machine (ags) failed their first deploy
   without it. Bootstrap-only: re-apply bootstrap, no new tag.
