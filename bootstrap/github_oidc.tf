@@ -25,10 +25,17 @@ data "aws_iam_policy_document" "deploy_trust" {
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
+    # GitHub sends the subject in one of two forms, depending on the owner's/repo's OIDC
+    # settings: plain names, or names with their immutable numeric ids appended
+    # (repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:<env>). Accept both; owner, repo and
+    # environment stay pinned by name either way.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = [for e in each.value.envs : "repo:${var.github_owner}/${each.value.repo}:environment:${e}"]
+      values = flatten([for e in each.value.envs : [
+        "repo:${var.github_owner}/${each.value.repo}:environment:${e}",
+        "repo:${var.github_owner}@*/${each.value.repo}@*:environment:${e}",
+      ]])
     }
   }
 }
