@@ -12,7 +12,7 @@ Core is stdlib-only (drops into any Lambda image). `llmkit[openai]` adds the cha
 dependencies = ["llmkit[openai]"]
 
 [tool.uv.sources]
-llmkit = { git = "https://github.com/i-osipchyk/platform", subdirectory = "llmkit", tag = "v0.1.0" }
+llmkit = { git = "https://github.com/i-osipchyk/platform", subdirectory = "llmkit", tag = "v0.1.1" }
 ```
 
 While iterating on llmkit itself, point a project at the working copy instead:

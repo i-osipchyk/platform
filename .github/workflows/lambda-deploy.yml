@@ -6,7 +6,7 @@
 #
 #   jobs:
 #     demo:
-#       uses: i-osipchyk/platform/.github/workflows/lambda-deploy.yml@v0.1.0
+#       uses: i-osipchyk/platform/.github/workflows/lambda-deploy.yml@v0.1.1
 #       permissions: { id-token: write, contents: read }
 #       with:
 #         project: gtb
@@ -32,11 +32,11 @@ on:
         type: string
         required: true
       aws-region:
-        description: Empty = eu-west-1. Callers pass ${{ vars.AWS_REGION || 'eu-west-1' }}
+        description: "Empty means eu-west-1. Callers pass the AWS_REGION repo variable with an eu-west-1 fallback"
         type: string
         default: ""
       ref:
-        description: Commit to deploy (default: the triggering commit / workflow_run head)
+        description: "Commit to deploy (default: the triggering commit / workflow_run head)"
         type: string
         default: ""
       tf-dir:

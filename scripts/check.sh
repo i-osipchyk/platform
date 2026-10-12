@@ -7,6 +7,9 @@ cd "$ROOT"
 echo "== llmkit"
 (cd llmkit && uv sync -q && uv run pytest -q && uv run ruff check -q . && uv run mypy)
 
+echo "== workflows"
+uvx --quiet --from actionlint-py actionlint .github/workflows/*.yml
+
 echo "== notifier"
 uvx --quiet ruff check -q --line-length 100 --select E,F,W,I,B,UP bootstrap/notifier
 
