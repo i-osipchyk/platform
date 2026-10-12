@@ -31,7 +31,7 @@ variable "functions" {
     handler              = string # python dotted path, e.g. "gtb.runs.app.morning_handler"
     timeout              = optional(number, 60)
     memory               = optional(number, 512)
-    reserved_concurrency = optional(number, -1) # 1 = never overlap; -1 = unreserved
+    reserved_concurrency = optional(number, -1) # 1 = never overlap; -1 = unreserved. Needs an account limit > 10 (docs/deployment.md § Troubleshooting)
     retries              = optional(number, 0)  # async retries (0-2)
     max_event_age        = optional(number, 3600)
     alarm                = optional(bool, true) # Errors >= 1 -> platform-alarms

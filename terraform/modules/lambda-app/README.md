@@ -38,6 +38,10 @@ module "app" {
 }
 ```
 
+`reserved_concurrency` fails on an account still at the default Lambda concurrency limit of 10:
+AWS keeps 10 unreserved, so nothing can be reserved. Raise the quota first
+(`docs/deployment.md` § Troubleshooting), or leave it unset.
+
 Project-specific extras (Step Functions, SQS, ...) go next to the module call in the project's
 own `infra/`, named `<project>-<env>-*` so the deploy role can manage them. Grant the functions
 access through `extra_policy_json`.
