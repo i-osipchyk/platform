@@ -7,7 +7,7 @@ Status and migration plan for the projects that existed before the platform (sca
 |---|---|---|---|---|---|---|
 | gold-tokyo-breakout | `gtb` | ☐ | ✅ (own bucket) | ☐ | ☐ (`scripts/deploy.sh`) | n/a (no LLM) |
 | polymarket-bond-hype | `bondhype` | ☐ | ❌ **local state** | ☐ | ☐ (manual) | ☐ (usage discarded) |
-| ags-trading-agentic-system | `ags` | ✅ (`ruff: false`) | ✅ (`ags/live.tfstate`, not yet applied) | ✅ | ✅ (`live` only) | ✅ |
+| ags-trading-agentic-system | `ags` | ✅ (`ruff: false`) | ✅ (`ags/live.tfstate`) | ✅ | ✅ (`live` only; first deploy in progress) | ✅ |
 | hermes | `hermes` | ☐ | n/a (local only) | n/a | n/a | ☐ |
 
 Order: **bootstrap** → **bondhype state** (biggest risk) → **llmkit everywhere** (cost
@@ -94,7 +94,8 @@ return payload["choices"][0]["message"]["content"]
   versioning, encryption and public access block. The deploy role can only manage buckets named
   `bondhype-*`. If the current name doesn't start with that, keep the bucket outside Terraform's
   deploy role (data source) or rename it via copy.
-- `functions` from `local.jobs`. Keep `reserved_concurrency = 1` for scanner and tracker.
+- `functions` from `local.jobs`. Keep `reserved_concurrency = 1` for scanner and tracker, which
+  needs the account's Lambda concurrency quota raised above 10 first (deployment.md § Troubleshooting).
   `schedules` from the rules.
 - Drop the `alarm` function, the SNS topic and the alarm Lambda. The module sends alarms to `platform-alarms`.
 - SSM: re-put secrets under `/bondhype/live/` (`deepseek-api-key`, `telegram-bot-token`,
@@ -103,6 +104,11 @@ return payload["choices"][0]["message"]["content"]
 - Replace the Dockerfile with the template's (multi-stage, `uv export`, arm64). Keep the
   `COPY config` and `COPY prompts` lines.
 - Add `deploy.yml` from the template with `envs = live`.
+- ECR: the `bondhype` repo exists already (this project's `aws_ecr_repository.app`), so bondhype is
+  left out of bootstrap's `projects` until now. Add it back (`envs = ["live"]`), `terraform import
+  'aws_ecr_repository.project["bondhype"]' bondhype` in bootstrap, and replace the resource here with
+  `removed { from = aws_ecr_repository.app; lifecycle { destroy = false } }`. Bootstrap makes the
+  repo IMMUTABLE, so switch to the template's SHA-tag deploy in the same step.
 
 ## gold-tokyo-breakout (`gtb`)
 

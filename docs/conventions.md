@@ -67,6 +67,8 @@ another region therefore needs bootstrap applied in that region too.
   - use the `lambda-app` module rather than hand-writing these resources
 - Schedules use **EventBridge Scheduler**, not EventBridge rules. **Why:** it supports time zones
   and one-off `at()` schedules.
+- Reserved concurrency only once the account's Lambda concurrency quota is above 10 (new
+  accounts start at 10, and AWS keeps 10 unreserved). Bootstrap § 1 requests the raise.
 - Async retries default to **0**. **Why:** a retried trading job can act twice. Raise retries only
   for idempotent handlers.
 - Data buckets use the `data-bucket` module: versioned, encrypted, private, `prevent_destroy`.

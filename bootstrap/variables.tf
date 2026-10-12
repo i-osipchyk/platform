@@ -2,6 +2,13 @@ variable "region" {
   description = "Home region for state, ECR and the alarm topic. Fed from AWS_REGION via TF_VAR_region (see docs/deployment.md)."
   type        = string
   default     = "eu-west-1"
+
+  # An exported-but-empty TF_VAR_region overrides the default with "", which otherwise only
+  # surfaces mid-apply as an invalid state bucket name (tfstate-<account>-).
+  validation {
+    condition     = can(regex("^[a-z]{2}(-[a-z]+)+-[0-9]$", var.region))
+    error_message = "region must be an AWS region like eu-west-1. Is TF_VAR_region exported but empty? export TF_VAR_region=\"$${AWS_REGION:-eu-west-1}\"."
+  }
 }
 
 variable "github_owner" {

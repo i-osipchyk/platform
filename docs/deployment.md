@@ -22,7 +22,9 @@ Needs admin credentials locally (`aws sts get-caller-identity` works) and the re
 (conventions.md § Region):
 
 ```bash
-export AWS_REGION="${AWS_REGION:-eu-west-1}" TF_VAR_region="${AWS_REGION:-eu-west-1}"
+# One variable per line: in `export A=x B=$A`, $A is expanded before A is set.
+export AWS_REGION="${AWS_REGION:-eu-west-1}"
+export TF_VAR_region="$AWS_REGION"
 cd ~/dev/platform/bootstrap
 cp terraform.tfvars.example terraform.tfvars      # list projects, set alert_email
 
@@ -43,6 +45,18 @@ terraform init -migrate-state \
   -backend-config="bucket=tfstate-$(aws sts get-caller-identity --query Account --output text)-$AWS_REGION" \
   -backend-config="region=$AWS_REGION"
 ```
+
+**Lambda concurrency quota.** New accounts start at 10 concurrent executions, which is too few
+for a project that fans out (ags runs 7 pipelines at once) and makes `reserved_concurrency`
+impossible. Check it, and request a raise once per account and region (free; usually approved
+within a day):
+```bash
+aws service-quotas get-service-quota --service-code lambda --quota-code L-B99A9384 --query Quota.Value
+aws service-quotas request-service-quota-increase --service-code lambda --quota-code L-B99A9384 --desired-value 1000
+```
+
+**Resources that already exist** in the account make the first apply fail with
+`EntityAlreadyExists` / `RepositoryAlreadyExistsException`. See Troubleshooting below.
 
 If the apply fails on `aws_ce_cost_allocation_tag`, AWS hasn't seen the tag yet. Set
 `activate_cost_allocation_tags = false`, apply, and turn it back on a day after the first tagged
@@ -78,6 +92,18 @@ logs, then flip the flag in a PR.
 | Rotate a secret | update `.env`, run `put_secrets.py --env <env>`; the next cold start picks it up (or redeploy to force one) |
 | Pause a project | set `schedules_enabled = false` and merge |
 | A deploy hits AccessDenied | the service isn't in the deploy role yet: add it, scoped to `<slug>-*`, in `bootstrap/github_oidc.tf` and apply bootstrap |
+
+## Troubleshooting
+
+Problems hit for real while setting up an account and the first project. Add new ones here.
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| bootstrap: `InvalidBucketName` for `tfstate-<account>-` | `TF_VAR_region` exported but empty (often `export AWS_REGION=… TF_VAR_region="$AWS_REGION"` on one line) | export the two on separate lines (§ 1). The `region` variable now rejects an empty value at plan time |
+| bootstrap: `EntityAlreadyExists` for the GitHub OIDC provider | one per account, created earlier by hand or by another stack | if no other Terraform state manages it: `terraform import aws_iam_openid_connect_provider.github arn:aws:iam::<account>:oidc-provider/token.actions.githubusercontent.com` |
+| bootstrap: `RepositoryAlreadyExistsException` for `<slug>` | the project's own (pre-platform) Terraform created that ECR repo | leave the project out of `projects` until it migrates (bootstrap would make the repo IMMUTABLE and add expiry, which breaks a mutable-tag deploy). On migration: `terraform import 'aws_ecr_repository.project["<slug>"]' <slug>` here, and `removed { from = aws_ecr_repository.<name>; lifecycle { destroy = false } }` in the project |
+| deploy: `Not authorized to perform sts:AssumeRoleWithWebIdentity` | the token's `sub` doesn't match the role's trust. Read the real one from CloudTrail: `aws cloudtrail lookup-events --lookup-attributes AttributeKey=EventName,AttributeValue=AssumeRoleWithWebIdentity --max-results 3` (`userIdentity.userName`) | GitHub may send `repo:<owner>@<id>/<repo>@<id>:environment:<env>`; the trust accepts both forms since the change after v0.1.1. Otherwise check the repo name in `projects` and that the GitHub Environment matches `envs` |
+| deploy: `ReservedConcurrentExecutions … below its minimum value of [10]` | account Lambda concurrency quota still 10 | request the raise (§ 1), or drop `reserved_concurrency` until it's approved |
 
 ## Reusable workflow inputs (`lambda-deploy.yml`)
 

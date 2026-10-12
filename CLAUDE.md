@@ -23,6 +23,12 @@ bumps its pin.
 
 ## Rules for changing this repo
 
+- **Every change goes through a pull request.** Branch from an up-to-date `origin/main`
+  (`git fetch && git switch -c <type>/<topic> origin/main`), commit there, and never commit to or
+  push `main` directly. Pushing the branch still needs the user's go-ahead in the conversation.
+- A change that comes from a problem hit in a real project also updates the doc a future reader
+  would look in (usually `docs/deployment.md` § Troubleshooting) and, if it changes how projects
+  work by default, `~/dev/CLAUDE.md`.
 - Never push, tag, or move/delete a tag without the user asking in the current conversation.
   Projects pin tags, so a published tag must never change (docs/publishing.md).
 - **Never `terraform apply` bootstrap** without the user asking in the current conversation. It

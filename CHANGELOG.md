@@ -6,6 +6,10 @@
   immutable ids (`repo:<owner>@<id>/<repo>@<id>:environment:<env>`). Without it, repos whose
   tokens use that form fail with "Not authorized to perform sts:AssumeRoleWithWebIdentity".
   Bootstrap-only (applied from a checkout): no new tag needed for projects.
+- bootstrap: the `region` variable rejects an empty or malformed value at plan time.
+- docs: `deployment.md` § Troubleshooting (empty region, existing OIDC provider / ECR repo, OIDC
+  subject mismatch, Lambda concurrency quota of 10) and a quota check in bootstrap § 1;
+  `reserved_concurrency` caveat in conventions, the `lambda-app` README and adoption (bondhype).
 
 ## v0.1.1 (2026-10-12)
 
