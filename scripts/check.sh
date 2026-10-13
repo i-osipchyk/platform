@@ -10,8 +10,9 @@ echo "== llmkit"
 echo "== workflows"
 uvx --quiet --from actionlint-py actionlint .github/workflows/*.yml
 
-echo "== notifier"
-uvx --quiet ruff check -q --line-length 100 --select E,F,W,I,B,UP bootstrap/notifier
+echo "== bootstrap lambdas"
+uvx --quiet ruff check -q --line-length 100 --select E,F,W,I,B,UP bootstrap/notifier bootstrap/ctrader_tokens
+(cd bootstrap/ctrader_tokens && uvx --quiet pytest -q -p no:cacheprovider)
 
 echo "== terraform"
 terraform fmt -check -recursive

@@ -59,3 +59,9 @@ variable "activate_cost_allocation_tags" {
   type        = bool
   default     = true
 }
+
+variable "ctrader_token_refresh" {
+  description = "Deploy platform-ctrader-token-refresh, the only writer of the shared cTrader tokens in /platform/shared/ctrader-*. Seed those first, and turn it on only once no project refreshes its own copy (docs/conventions.md § Secrets)."
+  type        = bool
+  default     = false
+}
