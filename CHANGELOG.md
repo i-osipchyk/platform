@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- bootstrap: `platform-ctrader-token-refresh` (opt-in, `ctrader_token_refresh = true`) keeps the
+  account's one cTrader token pair in `/platform/shared/ctrader-*` and is its only writer.
+  Projects that each refreshed their own copy spent each other's refresh tokens. Projects: read
+  `CTRADER_*` from the shared path, remove your own refresh, then turn the refresher on
+  (conventions.md § Secrets, cTrader tokens). Bootstrap-only: no module or workflow change.
+- docs: Troubleshooting entry for the symptom; adoption notes for gtb and ags.
+
 ## v0.1.2 (2026-10-12)
 
 - Fix: `lambda-deploy.yml` hid a failed `terraform plan` (piped into `tee` without `pipefail`),

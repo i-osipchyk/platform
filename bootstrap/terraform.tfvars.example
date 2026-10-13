@@ -12,3 +12,7 @@ projects = {
 
 # Fresh account: the cost allocation tags can only be activated once AWS has seen them.
 # activate_cost_allocation_tags = false
+
+# The account's shared cTrader token refresher. Seed /platform/shared/ctrader-* first and turn
+# it on only after no project refreshes its own copy (docs/conventions.md § Secrets).
+# ctrader_token_refresh = true

@@ -139,7 +139,6 @@ module "app" {
   schedules         = merge(local.schedules, local.early_close)   # early-close one-offs as at(...)
   schedules_enabled = var.schedules_enabled
   write_bucket_arns = [module.records.arn]
-  ssm_write         = true                                         # token refresh writes back
   log_retention_days = 400
 }
 moved { from = aws_lambda_function.run["morning"]  to = module.app.aws_lambda_function.fn["morning"] }
@@ -153,6 +152,10 @@ moved { from = aws_s3_bucket.records               to = module.records.aws_s3_bu
   bootstrap-owned `gtb` repo. Use `removed { from = aws_ecr_repository.gtb; lifecycle { destroy = false } }`,
   then delete the old repo by hand once deploys use the new one.
 - Default tag `project` changes from `gold-tokyo-breakout` to `gtb`. That's an in-place tag update on everything.
+- cTrader tokens: read the shared pair in `/platform/shared/ctrader-*` (kebab-case, unlike gtb's
+  own snake_case parameters) and delete the heartbeat's refresh, `/gtb/<env>/ctrader_*_token`
+  and `ssm_write` (conventions.md § Secrets). dev and prod refreshing their own copies is what
+  broke the tokens before. Keep `ctrader_account_id` per env.
 
 ### 3. Actions instead of `scripts/deploy.sh`
 - `deploy.sh` generates `early_close.auto.tfvars.json` before planning. Commit that file instead,
@@ -171,7 +174,9 @@ from scratch:
   Remove it from the plan.
 - **Region:** the plan says "Region from `AWS_REGION`". Keep that, with the eu-west-1 fallback
   (conventions.md § Region).
-- **Secrets Manager → SSM** at `/ags/<env>/*`. For cTrader token refresh, set `ssm_write = true`.
+- **Secrets Manager → SSM** at `/ags/<env>/*`. The cTrader tokens are the shared pair in
+  `/platform/shared/ctrader-*` (conventions.md § Secrets): drop the `token-refresh` function and
+  its schedule, and `ssm_write` unless something else needs it.
 - **Step Functions** go in `infra/` next to the module, named `ags-<env>-cycle`, with log group
   `/aws/vendedlogs/states/ags-<env>-*`. Grant the functions what they need with `extra_policy_json`.
 - **Schedules:** Scheduler with `timezone = "America/New_York"` (the module supports it). The

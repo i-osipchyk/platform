@@ -89,6 +89,41 @@ another region therefore needs bootstrap applied in that region too.
   with `.env`.
 - `.env` is gitignored. `.env.example` is committed and lists every key.
 
+### cTrader tokens: one pair per account, rotated by the platform
+
+A cTrader refresh spends the old refresh token. If two things hold a copy and both refresh, one
+of them is left with a dead token. So the account has **one** pair, and **one** writer:
+
+- `/platform/shared/ctrader-{client-id,client-secret,access-token,refresh-token,access-token-expires-at}`
+  → `CTRADER_CLIENT_ID`, `CTRADER_ACCESS_TOKEN`, … in every function (`SHARED_SECRETS_PATH`).
+  The token covers every demo and live account of that cTrader ID, so only the account to trade
+  stays per project (`/<slug>/<env>/ctrader-account-id`).
+- `platform-ctrader-token-refresh` (bootstrap, `ctrader_token_refresh = true`) refreshes daily,
+  when under 7 days are left, and alarms to `platform-alarms` on failure. Only its role may write
+  `/platform/shared/ctrader-*`.
+- **Projects never refresh** and never keep their own copy (no `ctrader-*-token` under
+  `/<slug>/<env>/`, no `ssm_write` for it). After a refresh the old access token stops working, so
+  re-read `CTRADER_ACCESS_TOKEN` from SSM on every invocation (not only at cold start), or re-read
+  and retry once on an auth error. Local runs read the same parameters with your AWS credentials
+  instead of copying tokens into `.env`.
+
+Seeding (once per account), then cut-over:
+
+```bash
+for k in client-id client-secret refresh-token; do
+  read -rsp "ctrader-$k: " v && echo
+  aws ssm put-parameter --type SecureString --overwrite --name "/platform/shared/ctrader-$k" --value "$v"
+done
+```
+
+1. Seed with the pair that works now (the most recently refreshed project copy, or a fresh
+   authorisation).
+2. Deploy every project reading the shared pair, with its own refresher removed. Until then, a
+   project refresh spends the shared token.
+3. Set `ctrader_token_refresh = true`, apply bootstrap, and mint the access token:
+   `aws lambda invoke --function-name platform-ctrader-token-refresh --payload '{"force":true}' --cli-binary-format raw-in-base64-out out.json`.
+4. Delete the projects' old token parameters.
+
 ## Deployment
 
 - **GitHub Actions only.** On every push, CI runs. A successful CI run on `main` triggers Deploy,
