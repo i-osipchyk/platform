@@ -52,6 +52,19 @@ data "aws_iam_policy_document" "notifier" {
     actions   = ["ssm:GetParameter"]
     resources = ["arn:aws:ssm:${var.region}:${local.account}:parameter/platform/notifier/*"]
   }
+  # Read-only lookups that put the cause of a failure into the alert (notifier/handler.py).
+  statement {
+    actions   = ["logs:FilterLogEvents"]
+    resources = ["arn:aws:logs:${var.region}:${local.account}:log-group:/aws/lambda/*"]
+  }
+  statement {
+    actions   = ["states:ListExecutions"]
+    resources = ["arn:aws:states:${var.region}:${local.account}:stateMachine:*"]
+  }
+  statement {
+    actions   = ["states:GetExecutionHistory"]
+    resources = ["arn:aws:states:${var.region}:${local.account}:execution:*:*"]
+  }
 }
 
 resource "aws_iam_role_policy" "notifier" {

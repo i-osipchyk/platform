@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- bootstrap: the Telegram notifier adds the cause to ALARM messages: the latest error lines from
+  the failing Lambda's logs (or the failed Step Functions execution's error and cause) and a
+  console link. Its role gets read-only `logs:FilterLogEvents` on `/aws/lambda/*` and
+  `states:ListExecutions` / `GetExecutionHistory`. A failed lookup still sends the plain alert.
+  Projects: optionally log one `logger.error("<slug>-error ...")` line with the job's ids before
+  re-raising (conventions.md § AWS / Terraform). Bootstrap-only: re-apply bootstrap, no new tag.
 - bootstrap: `platform-ctrader-token-refresh` (opt-in, `ctrader_token_refresh = true`) keeps the
   account's one cTrader token pair in `/platform/shared/ctrader-*` and is its only writer.
   Projects that each refreshed their own copy spent each other's refresh tokens. Projects: read

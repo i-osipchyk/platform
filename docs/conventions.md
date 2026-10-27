@@ -75,6 +75,12 @@ another region therefore needs bootstrap applied in that region too.
   Function roles get no `DeleteObject`, so stored data is append-only.
 - Alarms go to the shared `platform-alarms` SNS topic, which forwards to Telegram. Don't build a
   separate alarm forwarder in each project.
+- The notifier puts the cause into each ALARM message: for a Lambda `Errors` alarm, the latest
+  `[ERROR]` / timeout / crash lines the function logged in the alarm's window (first line plus the
+  last 3 traceback frames); for a Step Functions alarm, the failed execution's error and cause.
+  To make that line say *which* job failed, log one `logger.error("<slug>-error key=value ...")`
+  with the job's identifiers before re-raising. Don't catch and send alerts from `except` blocks
+  instead: timeouts, out-of-memory and init failures never reach them.
 - Log retention is 90 days unless the project needs an audit trail (gtb keeps 400).
 
 ## Secrets
