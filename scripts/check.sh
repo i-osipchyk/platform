@@ -12,7 +12,7 @@ uvx --quiet --from actionlint-py actionlint .github/workflows/*.yml
 
 echo "== bootstrap lambdas"
 uvx --quiet ruff check -q --line-length 100 --select E,F,W,I,B,UP bootstrap/notifier bootstrap/ctrader_tokens
-(cd bootstrap/ctrader_tokens && uvx --quiet pytest -q -p no:cacheprovider)
+for dir in bootstrap/notifier bootstrap/ctrader_tokens; do (cd "$dir" && uvx --quiet pytest -q -p no:cacheprovider); done
 
 echo "== terraform"
 terraform fmt -check -recursive
